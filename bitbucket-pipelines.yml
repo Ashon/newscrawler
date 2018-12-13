@@ -5,7 +5,10 @@ pipelines:
     - step:
         caches:
           - pip
-        script: # Modify the commands below to build your repository.
+        script:
           - apt-get update && apt-get install -q -y $(cat apt-pkgs.txt)
           - pip install -r requirements-dev.txt
+
+          # lint and test
           - flake8
+          - pytest

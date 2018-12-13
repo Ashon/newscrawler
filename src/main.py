@@ -1,3 +1,5 @@
+import mecab
+
 from crawler import CrawlingTarget
 from crawler import NaverNewsCrawlingTarget
 
@@ -5,6 +7,8 @@ import settings
 
 
 def main():
+    m = mecab.MeCab()
+
     naver_news_list = CrawlingTarget(
         **settings.SPIDER_CONFIG['naver']['news_list'])
 
@@ -14,9 +18,11 @@ def main():
     news_links = naver_news_list.extract(date='20181211', page=1)
     for link in news_links:
         article_text = naver_news.extract(link=link['href'])
+        parsed = m.pos(article_text)
 
         print(link.text)
         print(article_text)
+        print(parsed)
         print('*' * 100)
 
 
