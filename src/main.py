@@ -1,26 +1,15 @@
 from crawler import CrawlingTarget
 from crawler import NaverNewsCrawlingTarget
 
+import settings
+
 
 def main():
     naver_news_list = CrawlingTarget(
-        url_pattern=(
-            'https://news.naver.com/main/list.nhn'
-            '?mode=LSD&sid1=001&mid=sec&listType=title'
-            '&date={date}&page={page}'
-        ),
-        selector={
-            'class': 'nclicks(fls.list)'
-        }
-    )
+        **settings.SPIDER_CONFIG['naver']['news_list'])
 
     naver_news = NaverNewsCrawlingTarget(
-        url_pattern='{link}',
-        selector={
-            'name': 'div',
-            'id': 'articleBodyContents'
-        }
-    )
+        **settings.SPIDER_CONFIG['naver']['news_page'])
 
     news_links = naver_news_list.extract(date='20181211', page=1)
     for link in news_links:
