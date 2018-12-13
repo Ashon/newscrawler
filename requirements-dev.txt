@@ -3,3 +3,5 @@
 flake8==3.6.0
 pytest==4.0.1
 pytest-cov==2.6.0
+pytest-pythonpath==0.7.2
+requests-mock==1.5.2
