@@ -1,1 +1,2 @@
 automake1.11
+libmecab2
