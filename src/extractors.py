@@ -1,6 +1,6 @@
 import re
 
-from core.crawler import CrawlingTarget
+from core.extractor import PageExtractor
 
 
 FILTER_TEXT_PATTERNS = [
@@ -19,7 +19,7 @@ FILTER_TAGS = [
 ]
 
 
-class NaverNewsCrawlingTarget(CrawlingTarget):
+class NaverNewsPageExtractor(PageExtractor):
     def get_content_wrapper(self, soup):
         content = soup.find_all(**self._selector)[0]
 

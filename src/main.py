@@ -1,38 +1,51 @@
-from collections import defaultdict
-from datetime import datetime
+import asyncio
+import functools
 import itertools
+import time
+
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
 
 import mecab
 
-from core.crawler import CrawlingTarget
-from crawlers import NaverNewsCrawlingTarget
+from core.extractor import PageExtractor
+from extractors import NaverNewsPageExtractor
 
 import settings
 
 
-MAX_PAGES_PER_DATE = 5
+MAX_PAGES_PER_DATE = 30
+PROCESSES = 16
+
+pool = ProcessPoolExecutor(PROCESSES)
+
+link_extractor = PageExtractor(
+    **settings.SPIDER_CONFIG['naver']['news_list'])
+
+content_extractor = NaverNewsPageExtractor(
+    **settings.SPIDER_CONFIG['naver']['news_page'])
 
 
-def harvest(today):
-    naver_news_list = CrawlingTarget(
-        **settings.SPIDER_CONFIG['naver']['news_list'])
+async def harvest(loop, date, page):
+    news_links = link_extractor.extract(date=date, page=page)
 
-    naver_news = NaverNewsCrawlingTarget(
-        **settings.SPIDER_CONFIG['naver']['news_page'])
-
-    for i in range(MAX_PAGES_PER_DATE):
-        news_links = naver_news_list.extract(date=today, page=i)
-        for link in news_links:
-            article_text = naver_news.extract(link=link['href'])
-            yield article_text
+    return await asyncio.gather(*(
+        loop.run_in_executor(pool, functools.partial(
+            content_extractor.extract, link=link['href']))
+        for link in news_links
+    ))
 
 
-def main():
+async def main(loop):
     today = datetime.now().strftime('%Y%m%d')
-    iter_articles = harvest(today)
+
+    articles = itertools.chain(*[
+        await harvest(loop, today, i) for i in range(MAX_PAGES_PER_DATE)
+    ])
 
     m = mecab.MeCab()
-    nouns = itertools.chain(*(m.nouns(article) for article in iter_articles))
+    nouns = itertools.chain(*(m.nouns(article) for article in articles))
 
     bag_of_words = defaultdict(int)
     for noun in nouns:
@@ -44,4 +57,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    start = time.time()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main(loop))
+
+    duration = time.time() - start
+    print(duration)

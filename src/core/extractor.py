@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup as bs
 import requests
 
 
-class CrawlingTarget(object):
+class PageExtractor(object):
     def __init__(self, url_pattern, selector):
         self._url_pattern = url_pattern
         self._selector = selector
