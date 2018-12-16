@@ -5,10 +5,12 @@ from core.crawler import CrawlingTarget
 
 class NaverNewsCrawlingTarget(CrawlingTarget):
     def get_content_wrapper(self, soup):
-        return soup.find_all(**self._selector)[0]
+        content = soup.find_all(**self._selector)[0]
+
+        return content
 
     def filter_content(self, content):
-        filter_tags = ['script', 'h4']
+        filter_tags = ['script', 'h4', 'span', 'a', 'strong']
         for tag in filter_tags:
             unwanted = content.find(tag)
             if unwanted:
