@@ -1,3 +1,4 @@
+import time
 from collections import defaultdict
 from datetime import datetime
 import itertools
@@ -44,4 +45,9 @@ def main():
 
 
 if __name__ == '__main__':
+    start = time.time()
+
     main()
+
+    duration = time.time() - start
+    print(duration)
