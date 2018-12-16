@@ -15,11 +15,6 @@ from extractors import NaverNewsPageExtractor
 import settings
 
 
-MAX_PAGES_PER_DATE = 30
-PROCESSES = 16
-
-pool = ProcessPoolExecutor(PROCESSES)
-
 link_extractor = PageExtractor(
     **settings.SPIDER_CONFIG['naver']['news_list'])
 
@@ -27,7 +22,7 @@ content_extractor = NaverNewsPageExtractor(
     **settings.SPIDER_CONFIG['naver']['news_page'])
 
 
-async def harvest(loop, date, page):
+async def harvest(loop, pool, date, page):
     news_links = link_extractor.extract(date=date, page=page)
 
     return await asyncio.gather(*(
@@ -38,10 +33,13 @@ async def harvest(loop, date, page):
 
 
 async def main(loop):
+    pool = ProcessPoolExecutor(settings.PROCESSES)
+
     today = datetime.now().strftime('%Y%m%d')
 
     articles = itertools.chain(*[
-        await harvest(loop, today, i) for i in range(MAX_PAGES_PER_DATE)
+        await harvest(loop, pool, today, i)
+        for i in range(settings.MAX_PAGES_PER_DATE)
     ])
 
     m = mecab.MeCab()
