@@ -8,12 +8,15 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 
 import mecab
+import uvloop
 
 from core.extractor import PageExtractor
 from extractors import NaverNewsPageExtractor
 
 import settings
 
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 link_extractor = PageExtractor(
     **settings.SPIDER_CONFIG['naver']['news_list'])
@@ -38,8 +41,8 @@ async def main(loop):
     today = datetime.now().strftime('%Y%m%d')
 
     articles = itertools.chain(*[
-        await harvest(loop, pool, today, i)
-        for i in range(settings.MAX_PAGES_PER_DATE)
+        await harvest(loop, pool, today, page)
+        for page in range(settings.MAX_PAGES_PER_DATE)
     ])
 
     m = mecab.MeCab()
