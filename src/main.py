@@ -1,11 +1,11 @@
 import asyncio
-import functools
-import itertools
-import time
 
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
+from functools import partial
+from itertools import chain
+from time import time
 
 import mecab
 import uvloop
@@ -25,28 +25,27 @@ content_extractor = NaverNewsPageExtractor(
     **settings.SPIDER_CONFIG['naver']['news_page'])
 
 
-async def harvest(loop, pool, date, page):
-    news_links = link_extractor.extract(date=date, page=page)
-
+async def harvest_content(loop, pool, news_links):
     return await asyncio.gather(*(
-        loop.run_in_executor(pool, functools.partial(
+        loop.run_in_executor(pool, partial(
             content_extractor.extract, link=link['href']))
         for link in news_links
     ))
 
 
-async def main(loop):
-    pool = ProcessPoolExecutor(settings.PROCESSES)
-
+async def main(loop, pool):
     today = datetime.now().strftime('%Y%m%d')
 
-    articles = itertools.chain(*[
-        await harvest(loop, pool, today, page)
-        for page in range(settings.MAX_PAGES_PER_DATE)
+    articles = chain(*[
+        await harvest_content(
+            loop, pool, link_extractor.extract(date=today, page=page)
+        ) for page in range(settings.MAX_PAGES_PER_DATE)
     ])
 
     m = mecab.MeCab()
-    nouns = itertools.chain(*(m.nouns(article) for article in articles))
+    nouns = chain(*(
+        m.nouns(article) for article in articles
+    ))
 
     bag_of_words = defaultdict(int)
     for noun in nouns:
@@ -58,10 +57,10 @@ async def main(loop):
 
 
 if __name__ == '__main__':
-    start = time.time()
-
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(loop))
+    pool = ProcessPoolExecutor(settings.PROCESSES)
 
-    duration = time.time() - start
+    start = time()
+    loop.run_until_complete(main(loop, pool))
+    duration = time() - start
     print(duration)
