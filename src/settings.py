@@ -1,3 +1,6 @@
+MAX_PAGES_PER_DATE = 30
+PROCESSES = 16
+
 SPIDER_CONFIG = {
     'naver': {
         'news_list': {

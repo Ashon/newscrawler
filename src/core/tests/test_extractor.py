@@ -1,4 +1,4 @@
-from core.crawler import CrawlingTarget
+from core.extractor import PageExtractor
 
 
 HTML_FIXTURE = '''
@@ -18,7 +18,7 @@ HTML_FIXTURE = '''
 def test_crawling_target(requests_mock):
     requests_mock.get('http://crawling-test.com/?page=1', text=HTML_FIXTURE)
 
-    target = CrawlingTarget(
+    target = PageExtractor(
         url_pattern='http://crawling-test.com/?page={id}',
         selector={
             'name': 'span',
