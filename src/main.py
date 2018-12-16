@@ -2,6 +2,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 import itertools
+import multiprocessing
 
 import mecab
 
@@ -11,29 +12,43 @@ from crawlers import NaverNewsCrawlingTarget
 import settings
 
 
-MAX_PAGES_PER_DATE = 5
+MAX_PAGES_PER_DATE = 30
 
 
-def harvest(today):
-    naver_news_list = CrawlingTarget(
-        **settings.SPIDER_CONFIG['naver']['news_list'])
+manager = multiprocessing.Manager()
 
-    naver_news = NaverNewsCrawlingTarget(
-        **settings.SPIDER_CONFIG['naver']['news_page'])
+naver_news_list = CrawlingTarget(
+    **settings.SPIDER_CONFIG['naver']['news_list'])
 
-    for i in range(MAX_PAGES_PER_DATE):
-        news_links = naver_news_list.extract(date=today, page=i)
-        for link in news_links:
-            article_text = naver_news.extract(link=link['href'])
-            yield article_text
+naver_news = NaverNewsCrawlingTarget(
+    **settings.SPIDER_CONFIG['naver']['news_page'])
+
+
+def extract_content(link):
+    return naver_news.extract(link=link)
+
+
+def harvest(today, page):
+    news_links = naver_news_list.extract(date=today, page=page)
+    pool = multiprocessing.Pool(8)
+    articles = pool.map(
+        extract_content, [link['href'] for link in news_links]
+    )
+
+    return articles
 
 
 def main():
     today = datetime.now().strftime('%Y%m%d')
-    iter_articles = harvest(today)
+
+    iter_articles = itertools.chain(*(
+        harvest(today, i) for i in range(MAX_PAGES_PER_DATE)
+    ))
 
     m = mecab.MeCab()
-    nouns = itertools.chain(*(m.nouns(article) for article in iter_articles))
+    nouns = itertools.chain(*(
+        m.nouns(article) for article in iter_articles
+    ))
 
     bag_of_words = defaultdict(int)
     for noun in nouns:
