@@ -1,5 +1,10 @@
-MAX_PAGES_PER_DATE = 30
-PROCESSES = 16
+import os
+
+env = os.environ
+
+
+BROKER_URL = env.get('BROKER_URL')
+BACKEND_URL = env.get('BACKEND_URL')
 
 SPIDER_CONFIG = {
     'naver': {
