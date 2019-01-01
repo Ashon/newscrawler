@@ -1,4 +1,5 @@
 import os
+import re
 
 env = os.environ
 
@@ -11,12 +12,23 @@ SPIDER_CONFIG = {
         'news_list': {
             'url_pattern': (
                 'https://news.naver.com/main/list.nhn'
-                '?mode=LSD&sid1=001&mid=sec&listType=title'
+                '?mode=LSD&sid1={sid}&mid=sec&listType=title'
                 '&date={date}&page={page}'
             ),
             'selectors': {
                 'links': {
-                    'class': 'nclicks(fls.list)'
+                    'name': 'a',
+                    'class_': re.compile(
+                        r'nclicks\((%s)\)' % '|'.join((
+                            'fls.list',
+                            'cls_pol.clsart',
+                            'cls_eco.clsart',
+                            'cls_nav.clsart',
+                            'cls_lif.clsart',
+                            'cls_wor.clsart',
+                            'cls_sci.clsart',
+                        ))
+                    )
                 }
             }
         },

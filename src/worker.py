@@ -15,6 +15,24 @@ app = celery.Celery(
     broker=settings.BROKER_URL,
     backend=settings.BACKEND_URL)
 
+app.conf.task_routes = {
+    'worker.harvest_links': {
+        'queue': 'harvest_links'
+    },
+    'worker.harvest_content': {
+        'queue': 'harvest_content'
+    },
+    'worker.distribute_chain': {
+        'queue': 'distribute_chain'
+    },
+    'worker.extract_nouns': {
+        'queue': 'extract_nouns'
+    },
+    'worker.aggregate_words': {
+        'queue': 'aggregate_words'
+    }
+}
+
 m = mecab.MeCab()
 
 link_extractor = NaverNewsLinkExtractor(
@@ -25,18 +43,33 @@ content_extractor = NaverNewsPageExtractor(
 
 
 @app.task
-def harvest_links(date, page):
-    news_links = link_extractor.extract(date=date, page=page)
+def harvest_links(sid, date, page):
+    news_links = link_extractor.extract(sid=sid, date=date, page=page)
 
     return news_links['links']
 
 
 @app.task
-def dmap(args, signature):
-    return celery.group(
-        celery.signature(
-            varies=signature['task'], args=(arg,)
-        ) for arg in args)()
+def distribute_chain(args, *signatures):
+    if len(signatures) == 1:
+        subtasks = [
+            celery.signature(
+                varies=signatures[0]['task'], args=(arg,)
+            ) for arg in args
+        ]
+    else:
+        subtasks = [
+            celery.chain(
+                celery.signature(
+                    varies=signatures[0]['task'], args=(arg,)
+                ), *(
+                    celery.signature(varies=signature['task'])
+                    for signature in signatures[1:]
+                )
+            ) for arg in args
+        ]
+
+    return celery.group(subtasks)()
 
 
 @app.task
@@ -59,7 +92,8 @@ def aggregate_words(word_lists):
     bag_of_words = defaultdict(int)
 
     for noun in chain(*word_lists):
-        bag_of_words[noun] += 1
+        if len(noun) > 1:
+            bag_of_words[noun] += 1
 
     top_words = sorted(bag_of_words.items(), key=lambda x: x[1])
 
