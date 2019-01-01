@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from itertools import chain
+import pprint
 
 import celery
 
@@ -13,10 +14,13 @@ from worker import harvest_content
 from worker import extract_nouns
 from worker import aggregate_words
 
-MAX_PAGES_PER_DATE = 30
+from worker import content_extractor
 
 
-def main():
+MAX_PAGES_PER_DATE = 1
+
+
+def harvest_and_analyze():
     today = datetime.now().strftime('%Y%m%d')
     print(today)
 
@@ -44,11 +48,33 @@ def main():
     )(aggregate_words.s())
 
     bows = aggregate_job.get()
-    print(bows)
+    pprint.pprint(bows)
+
+
+def get_links():
+    today = datetime.now().strftime('%Y%m%d')
+    print(today)
+
+    workflows = celery.group(
+        harvest_links.s(today, page)
+        for page in range(MAX_PAGES_PER_DATE)
+    )()
+    print(workflows)
+
+    links = workflows.get()
+    pprint.pprint(links)
+
+
+def test_harvest_content():
+    url = 'https://news.naver.com/main/read.nhn?mode=LSD&mid=sec&sid1=001&oid=030&aid=0002772003'
+    content = content_extractor.extract(link=url)
+    print(content)
 
 
 if __name__ == '__main__':
     start = time.time()
-    main()
+    harvest_and_analyze()
+    # get_links()
+    # test_harvest_content()
     duration = time.time() - start
     print(duration)

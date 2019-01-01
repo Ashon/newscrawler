@@ -12,16 +12,25 @@ SPIDER_CONFIG = {
             'url_pattern': (
                 'https://news.naver.com/main/list.nhn'
                 '?mode=LSD&sid1=001&mid=sec&listType=title'
-                '&date={date}&page={page}'),
-            'selector': {
-                'class': 'nclicks(fls.list)'
+                '&date={date}&page={page}'
+            ),
+            'selectors': {
+                'links': {
+                    'class': 'nclicks(fls.list)'
+                }
             }
         },
         'news_page': {
             'url_pattern': '{link}',
-            'selector': {
-                'name': 'div',
-                'id': 'articleBodyContents'
+            'selectors': {
+                'content': {
+                    'name': 'div',
+                    'id': 'articleBodyContents'
+                },
+                'date': {
+                    'name': 'span',
+                    'class': 't11'
+                }
             }
         }
     }

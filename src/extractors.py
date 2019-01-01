@@ -19,20 +19,38 @@ FILTER_TAGS = [
 ]
 
 
-class NaverNewsPageExtractor(PageExtractor):
+class NaverNewsLinkExtractor(PageExtractor):
     def get_content_wrapper(self, soup):
-        content = soup.find_all(**self._selector)[0]
+        content = super(NaverNewsLinkExtractor, self).get_content_wrapper(soup)
+        for key, value in content.items():
+            content[key] = [{
+                'text': link.text,
+                'url': link['href']
+            } for link in value]
 
         return content
 
-    def filter_content(self, content):
-        for tag in FILTER_TAGS:
-            unwanted = content.find(tag)
-            if unwanted:
-                unwanted.extract()
 
-    def sanitize_content(self, content):
-        article_text = re.sub(
-            f'[{",".join(FILTER_TEXT_PATTERNS)}]', '',
-            content.text)
-        return article_text
+class NaverNewsPageExtractor(PageExtractor):
+    def get_content_wrapper(self, soup):
+        content = super(NaverNewsPageExtractor, self).get_content_wrapper(soup)
+
+        for key, value in content.items():
+            content[key] = value[0]
+
+        return content
+
+    def filter_content(self, results):
+        for key, value in results.items():
+            for tag in FILTER_TAGS:
+                unwanted = value.find(tag)
+                if unwanted:
+                    unwanted.extract()
+
+    def sanitize_content(self, results):
+        for key, value in results.items():
+            results[key] = re.sub(
+                f'[{",".join(FILTER_TEXT_PATTERNS)}]', '',
+                value.text)
+
+        return results

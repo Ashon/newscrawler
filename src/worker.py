@@ -4,7 +4,7 @@ from itertools import chain
 import celery
 import mecab
 
-from core.extractor import PageExtractor
+from extractors import NaverNewsLinkExtractor
 from extractors import NaverNewsPageExtractor
 
 import settings
@@ -17,7 +17,7 @@ app = celery.Celery(
 
 m = mecab.MeCab()
 
-link_extractor = PageExtractor(
+link_extractor = NaverNewsLinkExtractor(
     **settings.SPIDER_CONFIG['naver']['news_list'])
 
 content_extractor = NaverNewsPageExtractor(
@@ -28,32 +28,28 @@ content_extractor = NaverNewsPageExtractor(
 def harvest_links(date, page):
     news_links = link_extractor.extract(date=date, page=page)
 
-    return [{
-        'text': link.text,
-        'link': link['href']
-    } for link in news_links]
+    return news_links['links']
 
 
 @app.task
 def dmap(args, signature):
     return celery.group(
         celery.signature(
-            varies=signature['task'],
-            args=(arg,)
-        ) for arg in args
-    )()
+            varies=signature['task'], args=(arg,)
+        ) for arg in args)()
 
 
 @app.task
-def harvest_content(link_item):
-    news_content = content_extractor.extract(link=link_item['link'])
+def harvest_content(extracted_link):
+    news_content = content_extractor.extract(
+        link=extracted_link['url'])
 
     return news_content
 
 
 @app.task
-def extract_nouns(text):
-    nouns = m.nouns(text)
+def extract_nouns(extracted_content):
+    nouns = m.nouns(extracted_content['content'])
 
     return nouns
 
