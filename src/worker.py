@@ -4,8 +4,8 @@ from itertools import chain
 import celery
 import mecab
 
-from extractors import NaverNewsLinkExtractor
-from extractors import NaverNewsPageExtractor
+from extractors.naver import NaverNewsLinkExtractor
+from extractors.naver import NaverNewsPageExtractor
 
 import settings
 
