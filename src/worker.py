@@ -33,6 +33,8 @@ app.conf.task_routes = {
     }
 }
 
+app.conf.task_track_started = True
+
 m = mecab.MeCab()
 
 link_extractor = NaverNewsLinkExtractor(
@@ -42,15 +44,15 @@ content_extractor = NaverNewsPageExtractor(
     **settings.SPIDER_CONFIG['naver']['news_page'])
 
 
-@app.task
-def harvest_links(sid, date, page):
+@app.task(bind=True)
+def harvest_links(self, sid, date, page):
     news_links = link_extractor.extract(sid=sid, date=date, page=page)
 
     return news_links['links']
 
 
-@app.task
-def distribute_chain(args, *signatures):
+@app.task(bind=True)
+def distribute_chain(self, args, *signatures):
     if len(signatures) == 1:
         subtasks = [
             celery.signature(
@@ -72,23 +74,28 @@ def distribute_chain(args, *signatures):
     return celery.group(subtasks)()
 
 
-@app.task
-def harvest_content(extracted_link):
-    news_content = content_extractor.extract(
-        link=extracted_link['url'])
+@app.task(bind=True)
+def harvest_content(self, extracted_link):
+    try:
+        news_content = content_extractor.extract(
+            link=extracted_link['url'])
 
-    return news_content
+        return news_content
+
+    except Exception as e:
+        self.update_state(state=celery.states.FAILURE)
+        raise celery.exceptions.Ignore()
 
 
-@app.task
-def extract_nouns(extracted_content):
+@app.task(bind=True)
+def extract_nouns(self, extracted_content):
     nouns = m.nouns(extracted_content['content'])
 
     return nouns
 
 
-@app.task
-def aggregate_words(word_lists):
+@app.task(bind=True)
+def aggregate_words(self, word_lists):
     bag_of_words = defaultdict(int)
 
     for noun in chain(*word_lists):
