@@ -83,8 +83,12 @@ def harvest_content(self, extracted_link):
         return news_content
 
     except Exception as e:
+        # Celery Issues:#4222
         self.update_state(state=celery.states.FAILURE)
-        raise celery.exceptions.Ignore()
+        return {
+            'content': 'NO_CONTENT',
+            'date': 'NO_DATE'
+        }
 
 
 @app.task(bind=True)
