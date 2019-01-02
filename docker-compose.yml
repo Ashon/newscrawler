@@ -41,6 +41,11 @@ services:
       - BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - BACKEND_URL=redis://redis:6379/0
     command: celery worker -A worker -Q harvest_links -l info -E
+    healthcheck:
+      timeout: 5s
+      interval: 5s
+      retries: 5
+      test: ['CMD', 'celery', 'status', '-A', 'worker']
 
   distributer:
     <<: *WORKER
