@@ -1,10 +1,12 @@
 import pprint
 import time
+from collections import defaultdict
 from datetime import datetime
 from itertools import chain
 from itertools import product
 
 import celery
+import halo
 
 import sys
 sys.path.append('src')  # noqa: E402
@@ -18,7 +20,7 @@ from worker import aggregate_words
 from worker import content_extractor
 
 
-MAX_PAGES_PER_DATE = 10
+MAX_PAGES_PER_DATE = 30
 
 NAVER_NEWS_SECSIONS = [
     '001',  # Headline
@@ -31,9 +33,26 @@ NAVER_NEWS_SECSIONS = [
 ]
 
 
+def wait_tasks(group_results, msg):
+    with halo.Halo(text=msg) as spinner:
+        start = time.time()
+
+        while not all([task.ready() for task in group_results]):
+            time.sleep(1)
+
+            state_dict = defaultdict(int)
+            for group_result in group_results:
+                for async_result in group_result.children:
+                    state_dict[async_result.state] += 1
+
+            spinner.text = f'{msg} - {dict(state_dict)}'
+
+        elapsed = time.time() - start
+        spinner.succeed(f'{msg} - Done ({len(group_results)} tasks / {elapsed:.2f}s)')
+
+
 def harvest_and_analyze():
     today = datetime.now().strftime('%Y%m%d')
-    # print(today)
 
     iter_product = product(range(MAX_PAGES_PER_DATE), NAVER_NEWS_SECSIONS)
 
@@ -47,19 +66,21 @@ def harvest_and_analyze():
         ) for page, sid in iter_product
     )()
 
-    print(1)
-    workflow.get(interval=1, on_interval=lambda :print(time.time()))
-    print(2)
-    workflow.children[0].get()
-    print(3)
-    results = workflow.children[0].children[0].get()
+    wait_tasks(
+        group_results=[workflow],
+        msg='Wait for workflow group tasks..')
+
+    wait_tasks(
+        group_results=workflow.children,
+        msg='Wait for Chain tasks ready..')
+
+    wait_tasks(
+        group_results=[subtask.children[0] for subtask in workflow.children],
+        msg='Wait for Terminal tasks ready..')
 
     # get word lists from workflows
-    words = list(
-        set([
-            tuple(x) for x in chain(results)
-        ])
-    )
+    results = [subtask.children[0].get() for subtask in workflow.children]
+    words = list(set([tuple(x) for x in chain(*results)]))
 
     # aggregate nouns and get top 20 ranked words
     aggregate_job = aggregate_words.apply_async(args=(words,))
