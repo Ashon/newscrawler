@@ -52,12 +52,12 @@ def harvest_links(self, sid, date, page):
 
 
 @app.task(bind=True)
-def distribute_chain(self, args, *signatures):
+def distribute_chain(self, args_list, *signatures):
     if len(signatures) == 1:
         subtasks = [
             celery.signature(
                 varies=signatures[0]['task'], args=(arg,)
-            ) for arg in args
+            ) for arg in args_list
         ]
     else:
         subtasks = [
@@ -68,7 +68,7 @@ def distribute_chain(self, args, *signatures):
                     celery.signature(varies=signature['task'])
                     for signature in signatures[1:]
                 )
-            ) for arg in args
+            ) for arg in args_list
         ]
 
     return celery.group(subtasks)()
