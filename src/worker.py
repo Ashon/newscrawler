@@ -38,10 +38,10 @@ app.conf.task_track_started = True
 m = mecab.MeCab()
 
 link_extractor = NaverNewsLinkExtractor(
-    **settings.SPIDER_CONFIG['naver']['news_list'])
+    **settings.SPIDER_CONFIG['naver']['link_extractor'])
 
 content_extractor = NaverNewsContentExtractor(
-    **settings.SPIDER_CONFIG['naver']['news_page'])
+    **settings.SPIDER_CONFIG['naver']['content_extractor'])
 
 
 @app.task(bind=True)

@@ -9,7 +9,7 @@ BACKEND_URL = env.get('BACKEND_URL')
 
 SPIDER_CONFIG = {
     'naver': {
-        'news_list': {
+        'link_extractor': {
             'url_pattern': (
                 'https://news.naver.com/main/list.nhn'
                 '?mode=LSD&sid1={sid}&mid=sec&listType=title'
@@ -32,7 +32,7 @@ SPIDER_CONFIG = {
                 }
             }
         },
-        'news_page': {
+        'content_extractor': {
             'url_pattern': '{link}',
             'selectors': {
                 'content': {
