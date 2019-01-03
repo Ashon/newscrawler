@@ -20,11 +20,13 @@ def test_crawling_target(requests_mock):
 
     target = PageExtractor(
         url_pattern='http://crawling-test.com/?page={id}',
-        selector={
-            'name': 'span',
-            'class': 'simple-text'
+        selectors={
+            'parsed': {
+              'name': 'span',
+              'class': 'simple-text'
+            }
         }
     )
 
     extracted_text = target.extract(id=1)
-    assert extracted_text[0].text == 'this is simple text'
+    assert extracted_text['parsed'][0].text == 'this is simple text'

@@ -3,9 +3,9 @@ import requests
 
 
 class PageExtractor(object):
-    def __init__(self, url_pattern, selector):
+    def __init__(self, url_pattern, selectors):
         self._url_pattern = url_pattern
-        self._selector = selector
+        self._selectors = selectors
 
     def extract(self, **kwargs):
         url = self._url_pattern.format(**kwargs)
@@ -25,10 +25,15 @@ class PageExtractor(object):
         return article_text
 
     def get_content_wrapper(self, soup):
-        return soup.find_all(**self._selector)
+        results = {
+            key: soup.find_all(**selector)
+            for key, selector in self._selectors.items()
+        }
 
-    def filter_content(self, content):
+        return results
+
+    def filter_content(self, results):
         pass
 
-    def sanitize_content(self, content):
-        return content
+    def sanitize_content(self, results):
+        return results
