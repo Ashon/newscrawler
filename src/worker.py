@@ -5,7 +5,7 @@ import celery
 import mecab
 
 from extractors.naver import NaverNewsLinkExtractor
-from extractors.naver import NaverNewsPageExtractor
+from extractors.naver import NaverNewsContentExtractor
 
 import settings
 
@@ -40,7 +40,7 @@ m = mecab.MeCab()
 link_extractor = NaverNewsLinkExtractor(
     **settings.SPIDER_CONFIG['naver']['news_list'])
 
-content_extractor = NaverNewsPageExtractor(
+content_extractor = NaverNewsContentExtractor(
     **settings.SPIDER_CONFIG['naver']['news_page'])
 
 

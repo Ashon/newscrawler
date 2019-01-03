@@ -31,9 +31,9 @@ class NaverNewsLinkExtractor(PageExtractor):
         return content
 
 
-class NaverNewsPageExtractor(PageExtractor):
+class NaverNewsContentExtractor(PageExtractor):
     def get_content_wrapper(self, soup):
-        content = super(NaverNewsPageExtractor, self).get_content_wrapper(soup)
+        content = super(NaverNewsContentExtractor, self).get_content_wrapper(soup)
 
         for key, value in content.items():
             content[key] = value[0]
