@@ -1,36 +1,29 @@
 from collections import defaultdict
-from itertools import chain
+from itertools import chain as iter_chain
 
-import celery
 import mecab
+from celery import Celery
+from celery import group
+from celery import chain
+from celery import subtask
+from celery import states
 
 from extractors.naver import NaverNewsLinkExtractor
 from extractors.naver import NaverNewsContentExtractor
 
-import settings
+from settings import BROKER_URL
+from settings import BACKEND_URL
+from settings import SPIDER_CONFIG
 
 
-app = celery.Celery(
-    __name__,
-    broker=settings.BROKER_URL,
-    backend=settings.BACKEND_URL)
+app = Celery(__name__, broker=BROKER_URL, backend=BACKEND_URL)
 
 app.conf.task_routes = {
-    'worker.harvest_links': {
-        'queue': 'harvest_links'
-    },
-    'worker.harvest_content': {
-        'queue': 'harvest_content'
-    },
-    'worker.distribute_chain': {
-        'queue': 'distribute_chain'
-    },
-    'worker.extract_nouns': {
-        'queue': 'extract_nouns'
-    },
-    'worker.aggregate_words': {
-        'queue': 'aggregate_words'
-    }
+    'worker.harvest_links': {'queue': 'harvest_links'},
+    'worker.harvest_content': {'queue': 'harvest_content'},
+    'worker.distribute_chain': {'queue': 'distribute_chain'},
+    'worker.extract_nouns': {'queue': 'extract_nouns'},
+    'worker.aggregate_words': {'queue': 'aggregate_words'}
 }
 
 app.conf.task_track_started = True
@@ -38,10 +31,39 @@ app.conf.task_track_started = True
 m = mecab.MeCab()
 
 link_extractor = NaverNewsLinkExtractor(
-    **settings.SPIDER_CONFIG['naver']['link_extractor'])
+    **SPIDER_CONFIG['naver']['link_extractor'])
 
 content_extractor = NaverNewsContentExtractor(
-    **settings.SPIDER_CONFIG['naver']['content_extractor'])
+    **SPIDER_CONFIG['naver']['content_extractor'])
+
+
+def map_single_task(args_list, *signatures):
+    return group([
+        subtask(signatures[0]).clone((args,))
+        for args in args_list
+    ])
+
+
+def map_signature_chain(args_list, *signatures):
+    return group([
+        chain(
+            subtask(signatures[0]).clone((args,)),
+            *(subtask(sig) for sig in signatures[1:])
+        ) for args in args_list
+    ])
+
+
+workflow_resolvers = {1: map_single_task}
+
+
+@app.task(bind=True, ignore_results=True)
+def distribute_chain(self, args_list, *signatures):
+    workflow_resolver = workflow_resolvers.get(
+        len(signatures), map_signature_chain)
+
+    group_task = workflow_resolver(args_list, *signatures)
+
+    return group_task()
 
 
 @app.task(bind=True)
@@ -52,29 +74,6 @@ def harvest_links(self, sid, date, page):
 
 
 @app.task(bind=True)
-def distribute_chain(self, args_list, *signatures):
-    if len(signatures) == 1:
-        subtasks = [
-            celery.signature(
-                varies=signatures[0]['task'], args=(arg,)
-            ) for arg in args_list
-        ]
-    else:
-        subtasks = [
-            celery.chain(
-                celery.signature(
-                    varies=signatures[0]['task'], args=(arg,)
-                ), *(
-                    celery.signature(varies=signature['task'])
-                    for signature in signatures[1:]
-                )
-            ) for arg in args_list
-        ]
-
-    return celery.group(subtasks)()
-
-
-@app.task(bind=True)
 def harvest_content(self, extracted_link):
     try:
         news_content = content_extractor.extract(
@@ -82,9 +81,10 @@ def harvest_content(self, extracted_link):
 
         return news_content
 
-    except Exception as e:
-        # Celery Issues:#4222
-        self.update_state(state=celery.states.FAILURE)
+    except Exception:
+        # Celery Issues: 4222
+        self.update_state(state=states.FAILURE)
+
         return {
             'content': 'NO_CONTENT',
             'date': 'NO_DATE'
@@ -99,10 +99,10 @@ def extract_nouns(self, extracted_content):
 
 
 @app.task(bind=True)
-def aggregate_words(self, word_lists):
+def aggregate_words(self, words_lists):
     bag_of_words = defaultdict(int)
 
-    for noun in chain(*word_lists):
+    for noun in iter_chain(*words_lists):
         if len(noun) > 1:
             bag_of_words[noun] += 1
 

@@ -17,19 +17,17 @@ from worker import harvest_content
 from worker import extract_nouns
 from worker import aggregate_words
 
-from worker import content_extractor
 
-
-MAX_PAGES_PER_DATE = 30
+MAX_PAGES_PER_DATE = 1
 
 NAVER_NEWS_SECSIONS = [
     '001',  # Headline
-    '100',  # Politics
-    '101',  # Economics
-    '102',  # Society
-    '103',  # Culture / Life
-    '104',  # World
-    '105',  # Science
+    # '100',  # Politics
+    # '101',  # Economics
+    # '102',  # Society
+    # '103',  # Culture / Life
+    # '104',  # World
+    # '105',  # Science
 ]
 
 
@@ -102,19 +100,8 @@ def get_links():
     pprint.pprint(links)
 
 
-def test_harvest_content():
-    url = (
-        'https://news.naver.com/main/read.nhn?'
-        'mode=LSD&mid=sec&sid1=001&oid=030&aid=0002772003'
-    )
-    content = content_extractor.extract(link=url)
-    print(content)
-
-
 if __name__ == '__main__':
     start = time.time()
     harvest_and_analyze()
-    # get_links()
-    # test_harvest_content()
     duration = time.time() - start
     print(duration)
