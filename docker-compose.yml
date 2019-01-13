@@ -26,11 +26,14 @@ services:
       retries: 5
       test: ['CMD', 'rabbitmqctl', 'status']
 
-  link_harvester: &WORKER
-    image: crawler
-    hostname: link_harvester
+  newscrawler:
+    image: newscrawler
     build:
       context: .
+
+  link_harvester: &WORKER
+    image: newscrawler
+    hostname: link_harvester
     links:
       - rabbitmq:rabbitmq
       - redis:redis

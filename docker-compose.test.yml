@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  test_image:
+    image: newscrawler-test
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+      args:
+        - DEVEL_TAG=latest
+
+  lint:
+    image: newscrawler-test
+    command: flake8
+
+  pytest:
+    image: newscrawler-test
+    command: pytest

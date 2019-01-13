@@ -10,10 +10,22 @@
 
 ### Lint & Run unittest
 
+### In `docker-compose`
+
 ``` sh
 # run lint
-$ flake8
+$ docker-compose -f docker-compose.yml -f docker-compose.test.yml up lint
 
 # run unittest
+$ docker-compose -f docker-compose.yml -f docker-compose.test.yml up pytest
+```
+
+### In `native`
+
+``` sh
+# lint
+$ flake8
+
+# unittest
 $ pytest
 ```
