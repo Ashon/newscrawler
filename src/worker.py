@@ -2,68 +2,29 @@ from collections import defaultdict
 from itertools import chain as iter_chain
 
 import mecab
-from celery import Celery
-from celery import group
-from celery import chain
-from celery import subtask
 from celery import states
 
 from extractors.naver import NaverNewsLinkExtractor
 from extractors.naver import NaverNewsContentExtractor
 
-from settings import BROKER_URL
-from settings import BACKEND_URL
-from settings import SPIDER_CONFIG
+from core.app import initialize_applictaion
+from core.workflows import distribute_chain
+
+import settings
 
 
-app = Celery(__name__, broker=BROKER_URL, backend=BACKEND_URL)
-
-app.conf.task_routes = {
-    'worker.harvest_links': {'queue': 'harvest_links'},
-    'worker.harvest_content': {'queue': 'harvest_content'},
-    'worker.distribute_chain': {'queue': 'distribute_chain'},
-    'worker.extract_nouns': {'queue': 'extract_nouns'},
-    'worker.aggregate_words': {'queue': 'aggregate_words'}
-}
-
-app.conf.task_track_started = True
+app = initialize_applictaion(settings)
 
 m = mecab.MeCab()
 
 link_extractor = NaverNewsLinkExtractor(
-    **SPIDER_CONFIG['naver']['link_extractor'])
+    **settings.SPIDER_CONFIG['naver']['link_extractor'])
 
 content_extractor = NaverNewsContentExtractor(
-    **SPIDER_CONFIG['naver']['content_extractor'])
+    **settings.SPIDER_CONFIG['naver']['content_extractor'])
 
-
-def map_single_task(args_list, *signatures):
-    return group([
-        subtask(signatures[0]).clone((args,))
-        for args in args_list
-    ])
-
-
-def map_signature_chain(args_list, *signatures):
-    return group([
-        chain(
-            subtask(signatures[0]).clone((args,)),
-            *(subtask(sig) for sig in signatures[1:])
-        ) for args in args_list
-    ])
-
-
-workflow_resolvers = {1: map_single_task}
-
-
-@app.task(bind=True, ignore_results=True)
-def distribute_chain(self, args_list, *signatures):
-    workflow_resolver = workflow_resolvers.get(
-        len(signatures), map_signature_chain)
-
-    group_task = workflow_resolver(args_list, *signatures)
-
-    return group_task()
+# add workflow util task
+distribute_chain = app.task(bind=True, ignore_results=True)(distribute_chain)
 
 
 @app.task(bind=True)
