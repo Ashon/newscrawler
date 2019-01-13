@@ -1,0 +1,8 @@
+ARG DEVEL_TAG
+FROM newscrawler:$DEVEL_TAG
+
+COPY setup.cfg ./
+RUN sed -i 's/src//g' setup.cfg
+
+COPY requirements-dev.txt ./
+RUN pip install -r requirements-dev.txt

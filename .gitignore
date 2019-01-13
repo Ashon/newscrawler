@@ -1,6 +1,8 @@
 .python-version
 .env
 
+**/*.swp
+
 **/*.pyc
 **/__pycache__
 
