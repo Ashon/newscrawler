@@ -1,5 +1,7 @@
 # News Crawler
 
+News crawler project using `Celery`, `BeautifulSoup4`, `mecab-ko`.
+
 ## Environment
 
 * python `3.6.5`
