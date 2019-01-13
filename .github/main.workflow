@@ -17,7 +17,11 @@ action "Build Container" {
 action "Prepare CI Image" {
   needs = ["Build Container"]
   uses = "actions/docker/cli@master"
-  args = "build -f Dockerfile.ci --build-arg DEVEL_TAG=ci-$GITHUB_SHA -t newscrawler:dev-$GITHUB_SHA ."
+  args = [
+    "build", "-f", "Dockerfile.ci",
+    "--build-arg", "DEVEL_TAG=ci-$GITHUB_SHA",
+    "-t", "newscrawler:dev-$GITHUB_SHA", "."
+  ]
 }
 
 action "Lint" {
