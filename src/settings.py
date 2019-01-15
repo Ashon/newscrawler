@@ -49,9 +49,9 @@ SPIDER_CONFIG = {
 }
 
 TASK_ROUTES = {
+    'core.workflows.distribute_chain': {'queue': 'distribute_chain'},
     'worker.harvest_links': {'queue': 'harvest_links'},
     'worker.harvest_content': {'queue': 'harvest_content'},
-    'worker.distribute_chain': {'queue': 'distribute_chain'},
     'worker.extract_nouns': {'queue': 'extract_nouns'},
     'worker.aggregate_words': {'queue': 'aggregate_words'}
 }
