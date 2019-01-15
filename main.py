@@ -12,9 +12,8 @@ import sys
 sys.path.append('src')  # noqa: E402
 
 from worker import distribute_chain
-from worker import harvest_links
-from worker import harvest_content
-from worker import extract_nouns
+from worker import harvest
+from worker import extract
 from worker import aggregate_words
 
 
@@ -56,10 +55,19 @@ def harvest_and_analyze():
 
     workflow = celery.group(
         celery.chain(
-            harvest_links.s(sid, today, page),
+            harvest.s(
+                harvester='naver', harvester_type='link',
+                sid={'value': sid},
+                date={'value': today},
+                page={'value': 1}
+            ),
             distribute_chain.s(
-                harvest_content.s(),
-                extract_nouns.s()
+                harvest.s(
+                    harvester='naver', harvester_type='content',
+                    link={'key': 'url'}
+                ),
+                extract.s(method='nouns'),
+                key='links'
             )
         ) for page, sid in iter_product
     )()
@@ -84,20 +92,6 @@ def harvest_and_analyze():
     aggregate_job = aggregate_words.apply_async(args=(words,))
     bows = aggregate_job.get()
     pprint.pprint(bows)
-
-
-def get_links():
-    today = datetime.now().strftime('%Y%m%d')
-    print(today)
-
-    workflows = celery.group(
-        harvest_links.s(today, page)
-        for page in range(MAX_PAGES_PER_DATE)
-    )()
-    print(workflows)
-
-    links = workflows.get()
-    pprint.pprint(links)
 
 
 if __name__ == '__main__':
