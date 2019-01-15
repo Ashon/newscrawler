@@ -19,6 +19,37 @@ FILTER_TAGS = [
 ]
 
 
+NEWS_LIST_URL_PATTERN = (
+    'https://news.naver.com/main/list.nhn'
+    '?mode=LSD&sid1={sid}&mid=sec&listType=title'
+    '&date={date}&page={page}'
+)
+NEWS_LIST_SELECTOR = {
+    'links': {
+        'name': 'a',
+        'class_': re.compile(
+            r'nclicks\((%s)\)' % '|'.join((
+                'fls.list', 'cls_pol.clsart', 'cls_eco.clsart',
+                'cls_nav.clsart', 'cls_lif.clsart', 'cls_wor.clsart',
+                'cls_sci.clsart'
+            ))
+        )
+    }
+}
+
+NEWS_CONTENT_URL_PATTERN = '{link}'
+NEWS_CONTENT_SELECTOR = {
+    'content': {
+        'name': 'div',
+        'id': 'articleBodyContents'
+    },
+    'date': {
+        'name': 'span',
+        'class': 't11'
+    }
+}
+
+
 class NaverNewsLinkExtractor(PageExtractor):
     def get_content_wrapper(self, soup):
         content = super(NaverNewsLinkExtractor, self).get_content_wrapper(soup)
@@ -54,3 +85,15 @@ class NaverNewsContentExtractor(PageExtractor):
                 value.text)
 
         return results
+
+
+def load_extractor():
+    link_extractor = NaverNewsLinkExtractor(
+        url_pattern=NEWS_LIST_URL_PATTERN,
+        selectors=NEWS_LIST_SELECTOR)
+
+    content_extractor = NaverNewsContentExtractor(
+        url_pattern=NEWS_CONTENT_URL_PATTERN,
+        selectors=NEWS_CONTENT_SELECTOR)
+
+    return link_extractor, content_extractor

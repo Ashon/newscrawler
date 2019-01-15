@@ -2,10 +2,8 @@ from collections import defaultdict
 from itertools import chain as iter_chain
 
 import mecab
+from celery import current_app
 from celery import states
-
-from extractors.naver import NaverNewsLinkExtractor
-from extractors.naver import NaverNewsContentExtractor
 
 from core.app import initialize_applictaion
 from core.workflows import distribute_chain
@@ -17,19 +15,14 @@ app = initialize_applictaion(settings)
 
 m = mecab.MeCab()
 
-link_extractor = NaverNewsLinkExtractor(
-    **settings.SPIDER_CONFIG['naver']['link_extractor'])
-
-content_extractor = NaverNewsContentExtractor(
-    **settings.SPIDER_CONFIG['naver']['content_extractor'])
-
 # add workflow util task
 distribute_chain = app.task(bind=True, ignore_results=True)(distribute_chain)
 
 
 @app.task(bind=True)
-def harvest_links(self, sid, date, page):
-    news_links = link_extractor.extract(sid=sid, date=date, page=page)
+def harvest_links(self, **kwargs):
+    news_links = current_app.extractors['naver']['link'].extract(
+        **kwargs)
 
     return news_links['links']
 
@@ -37,7 +30,7 @@ def harvest_links(self, sid, date, page):
 @app.task(bind=True)
 def harvest_content(self, extracted_link):
     try:
-        news_content = content_extractor.extract(
+        news_content = current_app.extractors['naver']['content'].extract(
             link=extracted_link['url'])
 
         return news_content
