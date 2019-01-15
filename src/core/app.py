@@ -3,13 +3,9 @@ from celery import Celery
 from core.utils import get_callable
 
 
-def initialize_applictaion(settings):
-    app = Celery(__name__, broker=settings.BROKER_URL, backend=settings.BACKEND_URL)
-    app.conf.task_routes = settings.TASK_ROUTES
-    app.conf.task_track_started = True
-
+def load_extractors(extractor_config):
     extractors = {}
-    for extractor_name, callable_conf in settings.EXTRACTOR_CONFIG.items():
+    for extractor_name, callable_conf in extractor_config.items():
         _callable = get_callable(callable_conf['callable'])
         link_extractor, content_extractor = _callable()
 
@@ -18,6 +14,14 @@ def initialize_applictaion(settings):
             'content': content_extractor
         }
 
+    return extractors
+
+
+def initialize_applictaion(settings):
+    app = Celery(__name__)
+    app.config_from_object(settings)
+
+    extractors = load_extractors(settings.EXTRACTOR_CONFIG)
     setattr(app, 'extractors', extractors)
 
     return app
