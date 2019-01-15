@@ -12,8 +12,7 @@ import sys
 sys.path.append('src')  # noqa: E402
 
 from worker import distribute_chain
-from worker import harvest_links
-from worker import harvest_content
+from worker import harvest
 from worker import extract
 from worker import aggregate_words
 
@@ -56,13 +55,19 @@ def harvest_and_analyze():
 
     workflow = celery.group(
         celery.chain(
-            harvest_links.s(
-                harvester='naver',
-                sid=sid, date=today, page=1
+            harvest.s(
+                harvester='naver', harvester_type='link',
+                sid={'value': sid},
+                date={'value': today},
+                page={'value': 1}
             ),
             distribute_chain.s(
-                harvest_content.s(harvester='naver'),
-                extract.s(method='nouns')
+                harvest.s(
+                    harvester='naver', harvester_type='content',
+                    link={'key': 'url'}
+                ),
+                extract.s(method='nouns'),
+                key='links'
             )
         ) for page, sid in iter_product
     )()

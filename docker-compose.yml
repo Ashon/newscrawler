@@ -32,9 +32,9 @@ services:
       context: .
     command: "true"
 
-  link_harvester: &WORKER
+  harvester: &WORKER
     image: newscrawler
-    hostname: link_harvester
+    hostname: harvester
     links:
       - rabbitmq:rabbitmq
       - redis:redis
@@ -44,7 +44,7 @@ services:
     environment:
       - BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - BACKEND_URL=redis://redis:6379/0
-    command: celery worker -A worker -Q harvest_links -l info -E
+    command: celery worker -A worker -Q harvest -l info -E
     healthcheck:
       timeout: 5s
       interval: 5s
@@ -55,11 +55,6 @@ services:
     <<: *WORKER
     hostname: distributer
     command: celery worker -A worker -Q distribute_chain -l info -E
-
-  content_harvester:
-    <<: *WORKER
-    hostname: content_harvester
-    command: celery worker -A worker -Q harvest_content -l info -E
 
   extractor:
     <<: *WORKER

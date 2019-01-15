@@ -15,8 +15,7 @@ EXTRACTOR_CONFIG = {
 CELERY_TRACK_STARTED = True
 CELERY_ROUTES = {
     'core.workflows.distribute_chain': {'queue': 'distribute_chain'},
-    'worker.harvest_links': {'queue': 'harvest_links'},
-    'worker.harvest_content': {'queue': 'harvest_content'},
+    'worker.harvest': {'queue': 'harvest'},
     'worker.extract': {'queue': 'extract'},
     'worker.aggregate_words': {'queue': 'aggregate_words'}
 }
