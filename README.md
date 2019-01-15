@@ -55,7 +55,6 @@ $ docker-compose up -d
 ```
 # execute test workflow
 $ python main.py
-▸ 07:56:02 ERR-INT $ python main.py
 ✔ Wait for workflow group tasks.. - Done (1 tasks / 2.12s)
 ✔ Wait for Chain tasks ready.. - Done (10 tasks / 0.00s)
 ⠙ Wait for Terminal tasks ready.. - {'PENDING': 500}

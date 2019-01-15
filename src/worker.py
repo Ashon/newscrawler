@@ -20,18 +20,19 @@ distribute_chain = app.task(bind=True, ignore_results=True)(distribute_chain)
 
 
 @app.task(bind=True)
-def harvest_links(self, **kwargs):
-    news_links = current_app.extractors['naver']['link'].extract(
-        **kwargs)
+def harvest_links(self, *args, harvester, **kwargs):
+    link_extractor = current_app.extractors[harvester]['link']
+    news_links = link_extractor.extract(**kwargs)
 
     return news_links['links']
 
 
 @app.task(bind=True)
-def harvest_content(self, extracted_link):
+def harvest_content(self, link, *args, harvester):
+    content_extractor = current_app.extractors[harvester]['content']
+
     try:
-        news_content = current_app.extractors['naver']['content'].extract(
-            link=extracted_link['url'])
+        news_content = content_extractor.extract(link=link['url'])
 
         return news_content
 
@@ -46,8 +47,9 @@ def harvest_content(self, extracted_link):
 
 
 @app.task(bind=True)
-def extract_nouns(self, extracted_content):
-    nouns = m.nouns(extracted_content['content'])
+def extract(self, extracted_content, *args, method):
+    method = getattr(m, method)
+    nouns = method(extracted_content['content'])
 
     return nouns
 

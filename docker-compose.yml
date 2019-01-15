@@ -30,6 +30,7 @@ services:
     image: newscrawler
     build:
       context: .
+    command: "true"
 
   link_harvester: &WORKER
     image: newscrawler
@@ -63,7 +64,7 @@ services:
   extractor:
     <<: *WORKER
     hostname: extractor
-    command: celery worker -A worker -Q extract_nouns -l info -E
+    command: celery worker -A worker -Q extract -l info -E
 
   aggregator:
     <<: *WORKER
