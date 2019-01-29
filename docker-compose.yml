@@ -84,7 +84,7 @@ services:
   aggregator:
     <<: *WORKER
     hostname: aggregator
-    command: celery worker -A worker -Q aggregate_words -l info -E
+    command: celery worker -A worker -Q aggregate -l info -E
 
   flower:
     <<: *WORKER

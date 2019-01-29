@@ -1,4 +1,4 @@
-from worker import serialize_extractor_kwargs
+from tasks.harvest import serialize_extractor_kwargs
 
 
 def test_serialize_extractor_kwargs():

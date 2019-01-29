@@ -11,10 +11,7 @@ import halo
 import sys
 sys.path.append('src')  # noqa: E402
 
-from worker import distribute_chain
-from worker import harvest
-from worker import extract
-from worker import aggregate_words
+from worker import app
 
 
 MAX_PAGES_PER_DATE = 1
@@ -28,6 +25,11 @@ NAVER_NEWS_SECSIONS = [
     # '104',  # World
     # '105',  # Science
 ]
+
+distribute_chain = app.tasks['distribute_chain']
+harvest = app.tasks['harvest']
+extract = app.tasks['extract']
+aggregate = app.tasks['aggregate']
 
 
 def wait_tasks(group_results, msg):
@@ -89,13 +91,15 @@ def harvest_and_analyze():
     words = list(set([tuple(x) for x in chain(*results)]))
 
     # aggregate nouns and get top 20 ranked words
-    aggregate_job = aggregate_words.apply_async(args=(words,))
-    bows = aggregate_job.get()
-    pprint.pprint(bows)
+    aggregate_job = aggregate.apply_async(args=(words,))
+    bow = aggregate_job.get()
+
+    return bow
 
 
 if __name__ == '__main__':
     start = time.time()
-    harvest_and_analyze()
+    bow = harvest_and_analyze()
     duration = time.time() - start
     print(duration)
+    pprint.pprint(bow)
